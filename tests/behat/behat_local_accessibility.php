@@ -645,6 +645,25 @@ class behat_local_accessibility extends behat_base {
     }
 
     /**
+     * Add HTML at the end of the main region, as content loaded after the page would be. From Moodle 5.3 the region
+     * ends with the sticky course navigation footer, which would cover anything added after it, so the HTML goes in
+     * just before that footer.
+     *
+     * @When /^the HTML "(?P<html>[^"]*)" is added to the main region$/
+     * @param string $html
+     */
+    public function the_html_is_added_to_the_main_region(string $html): void {
+        $this->execute_script('(function(html) {
+            const footer = document.querySelector("#region-main #sticky-footer");
+            if (footer) {
+                footer.insertAdjacentHTML("beforebegin", html);
+            } else {
+                document.getElementById("region-main").insertAdjacentHTML("beforeend", html);
+            }
+        })(' . json_encode($html) . ');');
+    }
+
+    /**
      * Add a style sheet to the page, for example to stand in for a theme rule that is off on Behat sites.
      *
      * @Given /^the page has the extra style "(?P<css>[^"]*)"$/

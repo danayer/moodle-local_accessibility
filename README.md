@@ -21,7 +21,7 @@ It is one plugin with all features built in.
 
 | Setting | Choices |
 |---|---|
-| Text size | Any percentage up to 1000% (steps of 10; default 100%), with quick picks 100%, 125%, 150%, 200%, 250% and 300%. The whole page scales in proportion. |
+| Text size | Any percentage up to 1000% (steps of 10; default 100%), with quick picks 100%, 125%, 150%, 200%, 250% and 300%. The whole page scales in proportion, including text given a fixed size in the editor. |
 | Font | Site default; the device's sans-serif, serif and monospace fonts; Atkinson Hyperlegible, Lexend, OpenDyslexic Alta and Comic Neue (included); Japanese UD Gothic, Japanese UD Mincho and Japanese textbook (device fonts); fonts uploaded by the administrator. Each option is shown in its own font. |
 | Spacing: line height | Site default, or any value from 0 to 10 in steps of 0.1 (typed values to 0.01). Paragraph spacing follows the line height. |
 | Spacing: letter spacing | Site default, or any value from −5 to 5 em in steps of 0.01 em |
@@ -30,7 +30,7 @@ It is one plugin with all features built in.
 | Colours | Site default, High contrast, Yellow on black, Black on white, Cream, Dark, the site's own schemes, and Custom (your own background, text and link colours, adjusted to a 7:1 contrast ratio unless you keep your exact colours) |
 | Line width | Full width, or any width from 1 to 300 characters in steps of 5 |
 | Links | Off, Underlined, Underline and outline, Highlighted |
-| Images | Shown, Dimmed, Hidden (alt text shown) |
+| Images | Shown, Dimmed, Hidden (alt text shown); this includes photos shown as background images, such as Tiles course format tiles and Dashboard course cards |
 | Guide | Off, Reading ruler, Reading mask |
 | Motion | On, Stopped |
 | Read | Off, Read aloud bar shown (the browser's own voices, sentence by sentence; no visual highlight yet) |
@@ -87,6 +87,10 @@ Nothing is stored on the server for them. Logged-in users' settings are stored a
 
 - Line height, letter spacing and word spacing do not yet apply to headings.
 - Content inside iframes (including H5P) is not changed.
+- Text given a fixed size in the editor follows the text size by script, so for a moment after a page loads it can
+  show at its original size.
+- Images covers background images only when they are set in the page itself (as Tiles and the Dashboard course
+  cards do). A background image set in a theme's or plugin's stylesheet is not hidden or dimmed.
 - The Moodle mobile app does not load the plugin.
 - The colour contrast guarantee covers only the surfaces the plugin recolours. Content with its own
   colours, such as images or embedded media, is not guaranteed.

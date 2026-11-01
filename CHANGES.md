@@ -1,8 +1,6 @@
-# 3.0.2
+# 3.0.7
 
-- The full GPL-3.0 licence text is now included as `LICENSE` in the plugin root. The plugin's licence is unchanged
-  (GPL-3.0-or-later).
-- Installing with Composer no longer caps the Moodle version: `composer.json` now requires `moodle/moodle`
-  `^4.5 || ^5.0` (was `>=4.5 <5.4`).
-- Continuous integration now tests against the released Moodle 5.3 (`MOODLE_503_STABLE`) instead of Moodle's
-  development branch.
+- Images, Dimmed and Hidden, now also apply to photos shown as background images, such as the photo tiles of the
+  Tiles course format and the course cards on the Dashboard. Before, those photos stayed at full strength (GitHub
+  issue #3). Hidden removes the photo and keeps the tile and its title. Dimmed fades the photo but not the text on it,
+  and the photo comes back to full strength while you point at or focus the tile.

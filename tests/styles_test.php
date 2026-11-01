@@ -88,9 +88,15 @@ final class styles_test extends \advanced_testcase {
         ) {
             $this->assertStringContainsString($new, $css, $new);
         }
-        $size = self::rules_with('html[data-a11y-size]');
+        $size = array_values(array_filter(self::rules_with('html[data-a11y-size]'), fn($r) => !str_contains($r[0], 'font[')));
         $this->assertCount(1, $size);
         $this->assertStringContainsString('font-size: calc(var(--a11y-size) * 1%)', $size[0][1]);
+        // Legacy <font size> 1-7 gets rem sizes, which follow the root (issue #2).
+        $fonts = array_filter(self::rules_with('html[data-a11y-size]'), fn($r) => str_contains($r[0], 'font['));
+        $this->assertCount(7, $fonts);
+        foreach ($fonts as [$selector, $declarations]) {
+            $this->assertMatchesRegularExpression('/^font-size: [\d.]+rem;?$/', trim($declarations), $selector);
+        }
         // Paragraph spacing follows line height (D4).
         $para = array_filter(self::rules_with('[data-a11y-lineheight]'), fn($r) => str_contains($r[1], 'margin-block-end'));
         $this->assertCount(1, $para);
@@ -185,8 +191,9 @@ final class styles_test extends \advanced_testcase {
         $this->assertStringContainsString('clamp(380px, 50vw, 760px)', $body);
         $this->assertStringContainsString('min(80vh, calc(100vh - 120px))', $body);
         $this->assertStringContainsString('font-size: 1rem', $body);
-        $this->assertStringContainsString('var(--a11y-page, var(--bs-body-bg, #fff))', $body);
-        $this->assertStringContainsString('var(--a11y-text, var(--bs-body-color, #1d2125))', $body);
+        // The scheme's colour first, then the Moodle Design System token (5.3), then Bootstrap's, then Boost's value.
+        $this->assertStringContainsString('var(--a11y-page, var(--mds-bg-surface-default, var(--bs-body-bg, #fff)))', $body);
+        $this->assertStringContainsString('var(--a11y-text, var(--mds-text-default, var(--bs-body-color, #1d2125)))', $body);
         $head = array_values(array_filter(self::rules(), fn($r) => $r[0] === '.local-accessibility-panel .la-head'));
         $this->assertNotEmpty($head);
         $this->assertStringContainsString('position: sticky', $head[0][1]);
@@ -221,6 +228,31 @@ final class styles_test extends \advanced_testcase {
             [$selector, $declarations] = $rule;
             $this->assertDoesNotMatchRegularExpression('/font-size:\s*\d+(\.\d+)?px/', $declarations, $selector);
         }
+    }
+
+    /**
+     * The floating launcher sits below chat and other docked panels (z-index 777) and is sized and placed in rem, so it
+     * grows with the user's text size and keeps its place above Boost's footer button, which is placed in rem too.
+     */
+    public function test_launcher_follows_text_size(): void {
+        $launcher = array_values(array_filter(self::rules(), fn($r) => $r[0] === '.btn.local-accessibility-launcher'));
+        $this->assertNotEmpty($launcher);
+        $body = $launcher[0][1];
+        $this->assertStringContainsString('z-index: 777;', $body);
+        foreach (['inset-block-end: 5rem;', 'inline-size: 2.75rem;', 'block-size: 2.75rem;', 'font-size: 1.25rem;'] as $rule) {
+            $this->assertStringContainsString($rule, $body);
+        }
+        foreach (self::rules_with('.local-accessibility-launcher') as [$selector, $declarations]) {
+            $this->assertDoesNotMatchRegularExpression(
+                '/(?<![-\w])(font-size|inline-size|block-size|inset-block-end):\s*\d+(\.\d+)?px/',
+                $declarations,
+                $selector
+            );
+        }
+        $icon = array_values(array_filter(self::rules(), fn($r) => $r[0] === '.btn.local-accessibility-launcher .icon'));
+        $this->assertNotEmpty($icon);
+        $this->assertStringContainsString('max-inline-size: none', $icon[0][1]);
+        $this->assertStringContainsString('max-block-size: none', $icon[0][1]);
     }
 
     /**
@@ -282,6 +314,24 @@ final class styles_test extends \advanced_testcase {
     }
 
     /**
+     * Photos drawn as inline background images (format_tiles, issue #3) are dropped for "hide" and veiled, not faded,
+     * for "dim", so the text on them keeps its contrast; the veil lifts on hover and focus.
+     */
+    public function test_background_images(): void {
+        $bg = '[style*="background" i][style*="url(" i]';
+        $hide = array_filter(self::rules_with('data-a11y-images="hide"'), fn($r) => str_contains($r[0], $bg));
+        $this->assertCount(1, $hide);
+        $this->assertStringContainsString('background-image: none !important', reset($hide)[1]);
+        $dim = array_filter(self::rules_with('data-a11y-images="dim"'), fn($r) => str_contains($r[0], $bg));
+        $this->assertCount(1, $dim);
+        [$selector, $body] = reset($dim);
+        $this->assertStringContainsString(':not(:hover, :focus-within, a:hover *, a:focus *)', $selector);
+        $this->assertStringContainsString('box-shadow: inset 0 0 0 100vmax', $body);
+        $this->assertStringContainsString('var(--a11y-page,', $body);
+        $this->assertStringNotContainsString('opacity', $body);
+    }
+
+    /**
      * The extra-large cursor exists at 96px, and images.js adds alt text for the "hide" value.
      */
     public function test_cursor_and_images_script(): void {
@@ -291,6 +341,41 @@ final class styles_test extends \advanced_testcase {
         $js = file_get_contents(__DIR__ . '/../amd/src/images.js');
         $this->assertStringContainsString("'hide'", $js);
         $this->assertStringNotContainsString("=== 'on'", $js);
+    }
+
+    /**
+     * Authored colours give way to the scheme: inline colours and backgrounds (the shorthand too) and legacy colour
+     * attributes, in the main region and in authored text anywhere.
+     */
+    public function test_authored_colours_overridden(): void {
+        $rules = array_filter(self::rules(), fn($r) => str_contains($r[0], 'font[color]'));
+        $this->assertCount(1, $rules);
+        [$selector, $declarations] = reset($rules);
+        foreach (
+            ['#region-main', '.no-overflow', '.text_to_html', '.qtext', '[style*="color"]', '[style*="background"]',
+                '[bgcolor]', 'html[data-a11y-colour]'] as $part
+        ) {
+            $this->assertStringContainsString($part, $selector, $part);
+        }
+        $this->assertStringContainsString('color: var(--a11y-text) !important', $declarations);
+        $this->assertStringContainsString('background-color: transparent !important', $declarations);
+    }
+
+    /**
+     * inlinesize.js scales fixed inline font sizes against --a11y-size and skips editable regions (issue #2).
+     */
+    public function test_inline_size_script(): void {
+        $js = file_get_contents(__DIR__ . '/../amd/src/inlinesize.js');
+        $this->assertNotFalse($js);
+        $this->assertStringContainsString("' * var(--a11y-size, 100) / 100)'", $js);
+        $this->assertStringContainsString('[contenteditable]', $js);
+        // Line heights everywhere; box heights in authored text only, never on media (follow-up to issue #2).
+        $this->assertStringContainsString("'line-height': scaled(", $js);
+        $this->assertStringContainsString("const BOXES = ['height', 'min-height', 'max-height'];", $js);
+        $this->assertStringContainsString("const CONTENT = '.no-overflow, .text_to_html, .qtext';", $js);
+        $this->assertMatchesRegularExpression('/const MEDIA = .*\\bimg\\b.*\\biframe\\b/', $js);
+        $panel = file_get_contents(__DIR__ . '/../amd/src/panel.js');
+        $this->assertStringContainsString("from 'local_accessibility/inlinesize'", $panel);
     }
 
     /**

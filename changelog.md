@@ -1,5 +1,56 @@
 # Changelog
 
+## [3.0.7] - 2026-10-29
+
+### Fixed
+- Images, Dimmed and Hidden, left photos drawn as an inline `background-image` at full strength, such as format_tiles
+  photo tiles and core's Dashboard course cards (#3); the rules matched only `img`, `picture` and `svg[role="img"]`.
+  Elements whose inline style sets a background with a `url(...)` now lose the image for "hide"; for "dim" they get an
+  inset `box-shadow` veil of the page colour at 60% (the same result as opacity 0.4 over the page), so the text on
+  them keeps its contrast. The veil lifts on hover and focus. Background images set in a stylesheet are not covered.
+
+## [3.0.6] - 2026-10-28
+
+### Fixed
+- Authored text with a fixed inline font size (pt, px, pc, in, cm, mm, Q, as written by TinyMCE and tiny_fontsize) or
+  a keyword size (small, x-large...) did not follow the text size, which only scales the root font size (#2). While a
+  size other than the default is chosen, the new `local_accessibility/inlinesize` module rewrites such sizes to
+  `calc(<value> * var(--a11y-size, 100) / 100)` (keywords to rem), including content added to the page later. Fixed
+  inline line heights scale the same way; inside authored text (`.no-overflow`, `.text_to_html`, `.qtext`), so do fixed
+  inline heights, min-heights and max-heights, except on images, media, frames and maths. Editable regions and the
+  toolbar itself are left alone. Legacy `<font size>` 1-7 gets rem sizes in `styles.css`.
+- Colour schemes now override inline backgrounds written with the `background` shorthand, `<font color>` and `bgcolor`,
+  and inline colours in authored text outside `#region-main` (for example HTML blocks), which could leave light text on
+  a pale highlight or dark text on a dark page.
+
+## [3.0.5] - 2026-10-24
+
+### Changed
+- The panel and read-aloud bar chrome (background, text, borders, accent and warning colours) use the Moodle Design
+  System tokens (`--mds-*`, Moodle 5.3) first, then the Bootstrap variables, then the previous fixed colours, so the
+  plugin's own UI follows Moodle 5.3's dark colour mode. Unchanged on Moodle 4.5-5.2, which define no `--mds-*` tokens.
+- Borders inside the panel follow the active colour scheme's text colour when a scheme is chosen.
+
+## [3.0.4] - 2026-10-16
+
+### Changed
+- The floating toolbar button is sized and placed in rem (2.75rem, 5rem from the bottom; 9rem when it moves off the
+  focused element), so it scales with the user's text size; its icon is no longer capped by Boost's 30x24px icon
+  limit. At 100% it is unchanged (44px, 80px).
+
+### Fixed
+- The floating toolbar button appeared above chat panels: its z-index is now 777 (was 1050).
+
+## [3.0.3] - 2026-10-12
+
+### Added
+- camp registry publishing: the listing manifest `.camp/listing.yml` with screenshots, the `camp-release.yml`
+  workflow, and `.gitattributes` export-ignore rules that keep development files out of release archives. The
+  plugin's code and behaviour are unchanged.
+
+### Changed
+- Archives built from the git tag leave out `tests/`, `.github/`, `.camp/` and the git dotfiles.
+
 ## [3.0.2] - 2026-10-04
 
 ### Added
